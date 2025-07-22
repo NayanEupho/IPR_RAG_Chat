@@ -1,3 +1,5 @@
+# venv\Scripts\activate to activate pre-existing env
+# where python to check if the env got activated
 # python CLI_app.py --pdfs sample_pdfs/sample1.pdf --use_gpu --show_chunks
 # python CLI_app.py --pdfs sample_pdfs/sample1.pdf --use_gpu
 
