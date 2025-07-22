@@ -1,0 +1,24 @@
+# Ignore virtual environment
+venv/
+.env
+
+# Ignore cache & logs
+__pycache__/
+*.pyc
+*.log
+
+# Ignore Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore VS Code settings (optional)
+.vscode/
+
+# Ignore vector cache
+vector_cache/
+
+# Ignore HuggingFace cache
+~/.cache/huggingface/

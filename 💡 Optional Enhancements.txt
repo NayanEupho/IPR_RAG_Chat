@@ -1,0 +1,7 @@
+💡 Optional Enhancements
+
+If you want the "source" info to be more detailed (e.g., detect headings/sections/paragraphs/sentences), you would need to:
+
+    Add logic in pdf_loader.py or text_splitter.py to detect and attach that metadata to Document.metadata.
+
+That’s not required for main_2.py to function, but could improve interpretability.

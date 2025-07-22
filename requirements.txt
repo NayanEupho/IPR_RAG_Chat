@@ -1,0 +1,49 @@
+# ==============================
+# 📚 Core LangChain Components
+# ==============================
+langchain>=0.1.14
+langchain-core>=0.1.46
+langchain-community>=0.0.24
+langchain-huggingface>=0.0.1.post1
+
+# ==============================
+# 🔍 Embedding Models
+# ==============================
+sentence-transformers>=2.2.2
+
+# ==============================
+# 🤗 Hugging Face Transformers
+# ==============================
+transformers>=4.39.0
+accelerate>=0.27.2
+
+# ==============================
+# 🔥 PyTorch (Install manually for CUDA support)
+# ==============================
+# ⚠️ If using GPU (CUDA 11.8+), run manually:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+torch>=2.1.0
+
+# ==============================
+# 📦 Vector Store: FAISS
+# ==============================
+faiss-cpu>=1.7.4
+# Optional GPU support (requires matching CUDA version):
+# faiss-gpu==1.7.2.post2  # Do NOT install both faiss-cpu and faiss-gpu
+
+# ==============================
+# 📄 PDF Parsing Libraries
+# ==============================
+PyMuPDF>=1.22.3
+pdfplumber>=0.10.2
+
+# ==============================
+# 🖥️ CLI & UI Utilities
+# ==============================
+rich>=13.3.5
+tqdm>=4.66.1
+
+# ==============================
+# ✂️ NLP Sentence Tokenization
+# ==============================
+nltk>=3.8.1

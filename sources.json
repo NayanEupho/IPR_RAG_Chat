@@ -1,0 +1,17 @@
+{
+  "query": "What is the conclusion of this PDF?",
+  "used_documents": [
+    {
+      "index": 1,
+      "source": "sample_pdfs/sample1.pdf",
+      "page": 1,
+      "chunk_text": "Total\n14-06-2025 22:04:33.357\nCPG TrnID\nNA\nISSUE NEW LL\nMotor cycle without Gear (Non Transport)\n150.00\n0.00\n150.00\nLLTEST\n50.00\n-50.00\n0.00\nTotal Amount\n150.00\nTotal Amount (In Words)\nOne Hundred Fifty Rupees only\nNote: Visit the Concerned Office with Required Forms and Documents along with this Receipt\nSOWRCP001"
+    },
+    {
+      "index": 2,
+      "source": "sample_pdfs/sample1.pdf",
+      "page": 1,
+      "chunk_text": "e-Receipt For Online Driving License Application\nMotor Vehicles Department\nGujarat\nGovernment of\nOffice Name\nApplicant Name\nDate of Birth\nLicense No\nApplication No\nApplication Date\nRTO,AHMEDABAD\nBHARAVI MODI\n07-11-2005\nGJ01 /0051019/2024\n2179305925\n04-06-2025\nReceipt Date\nReceipt No\nBank / Gateway\nBank Reference No\nTransaction ID\nGJ25Y/1135413\nSBIePay\n516542002136\nGJ2025Y0022447344\nTransaction\nName\nClass of Vehicles\nFee Amount\nAdditional\nFee / Fine\nTotal\n14-06-2025 22:04:33.357\nCPG TrnID\nNA"
+    }
+  ]
+}
