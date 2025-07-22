@@ -1,6 +1,6 @@
 # 🧠 RAG PDF Chatbot with CLI & GUI
 
-This is a Retrieval-Augmented Generation (RAG) chatbot that lets you query local PDF documents using natural language. It supports CLI and a Streamlit-based GUI.
+This is a Retrieval-Augmented Generation (RAG) chatbot that lets you query local PDF documents using natural language on CLI.
 
 ## 🚀 Features
 - Upload and chat with PDF documents
