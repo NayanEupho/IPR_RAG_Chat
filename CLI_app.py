@@ -3,6 +3,7 @@
 # python CLI_app.py --pdfs sample_pdfs/sample1.pdf --use_gpu --show_chunks
 # python CLI_app.py --pdfs sample_pdfs/sample1.pdf --use_gpu
 
+# CLI_app.py
 import os
 import argparse
 import time
@@ -10,16 +11,17 @@ import warnings
 import logging
 import transformers
 
-from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 
 from rag_chatbot.pdf_loader import load_multiple_pdfs
 from rag_chatbot.text_splitter import split_text_into_chunks
-from rag_chatbot.vector_store import get_embedding_model, create_vector_store, get_retriever
-from rag_chatbot.LLM_interface import load_llm
+from rag_chatbot.vector_store import create_vector_store, get_retriever
+from rag_chatbot.global_objects import get_embedder, get_llm
+from rag_chatbot.RAG_chain import build_rag_chain, answer_query
 
 
 def get_cache_folder(pdfs: list[str], base_folder: str = "vector_cache") -> str:
+    """Generates a unique cache folder path based on PDF contents."""
     import hashlib
     os.makedirs(base_folder, exist_ok=True)
     combined_hash = hashlib.md5()
@@ -31,28 +33,8 @@ def get_cache_folder(pdfs: list[str], base_folder: str = "vector_cache") -> str:
     return os.path.join(base_folder, combined_hash.hexdigest()[:8])
 
 
-def clean_response(raw: str, prompt: str) -> str:
-    """Cleans the raw LLM output by removing the prompt and repeated context."""
-    cleaned = raw.replace(prompt, "").strip()
-    for tag in ["Answer:", "Context:", prompt]:
-        if tag in cleaned:
-            cleaned = cleaned.split(tag)[-1].strip()
-    return cleaned
-
-
-def print_chunk_summary(docs: list[Document]):
-    print(f"🔍 Top {len(docs)} chunks retrieved:")
-    for i, doc in enumerate(docs, 1):
-        meta = doc.metadata
-        print(
-            f"  {i}. Page {meta.get('page')}, "
-            f"Type: {meta.get('type', 'text')}, "
-            f"Section: {meta.get('section', 'N/A')}, "
-            f"Source: {meta.get('source')}"
-        )
-
-
-def interactive_loop(llm, retriever, show_chunks: bool = False):
+def interactive_loop(chain, show_chunks: bool = False):
+    """Interactive CLI chat loop using shared answer_query logic."""
     print("\n💬 Enter your questions (type 'exit' to quit)\n")
     while True:
         query = input(">>> ").strip()
@@ -61,27 +43,8 @@ def interactive_loop(llm, retriever, show_chunks: bool = False):
             break
 
         start_time = time.time()
-        relevant_docs = retriever.invoke(query)
-
-        if show_chunks:
-            print_chunk_summary(relevant_docs)
-
-        context = "\n\n".join(doc.page_content for doc in relevant_docs)
-        prompt = (
-            f"Answer the question based on the context below:\n\n"
-            f"{context}\n\n"
-            f"Question: {query}\nAnswer:"
-        )
-
-        response = llm.invoke(prompt)
-
-        if isinstance(response, list):
-            response = response[0].get("generated_text", "")
-        elif isinstance(response, dict) and "text" in response:
-            response = response["text"]
-
-        cleaned = clean_response(response, prompt)
-        print(f"\n🧠 Answer: {cleaned}")
+        result = answer_query(chain, query, show_chunks=show_chunks)
+        print(f"\n🧠 Answer: {result['answer']}")
         print(f"⏱️  Took: {round(time.time() - start_time, 2)} seconds\n")
 
 
@@ -99,7 +62,7 @@ def main():
     transformers.logging.set_verbosity_error()
 
     print("🧠 Loading or building vector store...")
-    embedder = get_embedding_model()
+    embedder = get_embedder()
     cache_dir = get_cache_folder(args.pdfs)
     index_file = os.path.join(cache_dir, "index.faiss")
 
@@ -116,11 +79,10 @@ def main():
         print(f"💾 Vector index saved to: {cache_dir}")
 
     retriever = get_retriever(vectorstore, top_k=args.top_k)
+    llm = get_llm(use_gpu=args.use_gpu)
 
-    print("🚀 Loading LLM...")
-    llm = load_llm(use_gpu=args.use_gpu)
-
-    interactive_loop(llm, retriever, show_chunks=args.show_chunks)
+    chain = build_rag_chain(llm, retriever)
+    interactive_loop(chain, show_chunks=args.show_chunks)
 
 
 if __name__ == "__main__":

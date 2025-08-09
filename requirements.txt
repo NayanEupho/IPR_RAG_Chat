@@ -47,3 +47,8 @@ tqdm>=4.66.1
 # ✂️ NLP Sentence Tokenization
 # ==============================
 nltk>=3.8.1
+# API server & helpers
+fastapi>=0.110.0
+uvicorn>=0.27.0
+pydantic>=2.6.1
+python-multipart>=0.0.9  # for file uploads from WebUI
