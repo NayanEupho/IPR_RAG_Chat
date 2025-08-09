@@ -25,7 +25,7 @@
 graph TD;
     A[PDF Files] --> B[FAISS Embedding Store];
     B --> C[LLM - TinyLlama/Ollama phi3:mini];
-    C --> D[CLI / Open WebUI];
+    C --> D[CLI / API / Open WebUI];
 ```
 
 ---
