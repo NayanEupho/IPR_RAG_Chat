@@ -23,9 +23,9 @@
 
 ```mermaid
 graph TD;
-    A[📄 PDF Files] --> B[🔍 FAISS Embedding Store];
-    B --> C[🧠 LLM (TinyLlama)];
-    C --> D[💬 CLI / 🌐 Open WebUI];
+    A[PDF Files] --> B[FAISS Embedding Store];
+    B --> C[LLM - TinyLlama];
+    C --> D[CLI / Open WebUI];
 ```
 
 ---
@@ -52,7 +52,7 @@ python CLI_app.py --pdfs sample_pdfs/sample1.pdf --use_gpu --show_chunks
 
 ### 📌 Open WebUI Connection Settings
 > **API URL:** `http://host.docker.internal:8000`  
-> **Key:**  your-dummy-key (type anything you want here)
+> **Key:** Any dummy key (type anything you want)
 
 ---
 
