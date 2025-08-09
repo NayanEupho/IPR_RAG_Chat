@@ -1,10 +1,7 @@
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
+# rag_chatbot/RAG_chain.py
+from typing import List, Dict, Tuple
 from langchain.schema import Document
-from langchain.vectorstores.base import VectorStoreRetriever
-from langchain.llms.base import BaseLLM
-from typing import List, Dict
-
+from langchain.prompts import PromptTemplate
 
 def get_prompt() -> PromptTemplate:
     return PromptTemplate(
@@ -24,7 +21,6 @@ Answer:"""
 
 
 def clean_response(raw: str, prompt: str) -> str:
-    """Remove prompt/context text from the model's answer."""
     cleaned = raw.replace(prompt, "").strip()
     for tag in ["Answer:", "Context:", prompt]:
         if tag in cleaned:
@@ -32,35 +28,49 @@ def clean_response(raw: str, prompt: str) -> str:
     return cleaned
 
 
-def build_rag_chain(
-    llm: BaseLLM,
-    retriever: VectorStoreRetriever
-) -> RetrievalQA:
-    return RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=retriever,
-        return_source_documents=True,
-        chain_type_kwargs={"prompt": get_prompt()}
-    )
+def build_rag_chain(llm, retriever):
+    """
+    Return a simple chain object (a tuple) containing llm and retriever.
+    The 'llm' must support .invoke(prompt) -> str.
+    The 'retriever' must support .invoke(query) -> List[Document].
+    """
+    return {"llm": llm, "retriever": retriever}
 
 
-def answer_query(chain: RetrievalQA, query: str, show_chunks: bool = False) -> Dict:
-    result = chain.invoke(query)
+def answer_query(chain, query: str, show_chunks: bool = False) -> Dict:
+    """
+    Retrieves top chunks using the retriever, builds a prompt, invokes the LLM,
+    cleans the response, and returns answer + sources metadata.
+    """
+    llm = chain["llm"]
+    retriever = chain["retriever"]
+
+    # Retrieve docs
+    with __import__("warnings").catch_warnings():
+        __import__("warnings").simplefilter("ignore")
+        relevant_docs = retriever.invoke(query)
 
     if show_chunks:
-        print_chunk_summary(result.get("source_documents", []))
+        _print_chunk_summary(relevant_docs)
 
-    # Get the prompt string we used
-    context = "\n\n".join(doc.page_content for doc in result.get("source_documents", []))
-    prompt = get_prompt().format(context=context, question=query)
+    context = "\n\n".join(doc.page_content for doc in relevant_docs)
+    prompt_template = get_prompt()
+    prompt = prompt_template.format(context=context, question=query)
 
-    # Clean the LLM output
-    cleaned_answer = clean_response(result["result"], prompt)
+    # call LLM
+    response = llm.invoke(prompt)
+    # ensure response is a string
+    if isinstance(response, list) and len(response) > 0:
+        # try to extract
+        candidate = response[0]
+        response = candidate.get("generated_text") or candidate.get("text") or str(candidate)
+    elif isinstance(response, dict):
+        response = response.get("text") or response.get("generated_text") or str(response)
 
+    cleaned = clean_response(str(response), prompt)
     return {
-        "answer": cleaned_answer,
-        "sources": extract_source_metadata(result.get("source_documents", []))
+        "answer": cleaned,
+        "sources": extract_source_metadata(relevant_docs)
     }
 
 
@@ -73,17 +83,17 @@ def extract_source_metadata(docs: List[Document]) -> List[Dict]:
             "source": meta.get("source", "N/A"),
             "page": meta.get("page", "N/A"),
             "chunk": meta.get("chunk", "N/A"),
-            "type": meta.get("chunk_type", "text")
+            "type": meta.get("type", meta.get("chunk_type", "text"))
         })
     return sources
 
 
-def print_chunk_summary(docs: List[Document]):
+def _print_chunk_summary(docs: List[Document]):
     print(f"🔍 Top {len(docs)} chunks retrieved:")
     for i, doc in enumerate(docs, 1):
         meta = doc.metadata or {}
         print(
             f"  {i}. Page {meta.get('page', 'N/A')}, "
-            f"Type: {meta.get('chunk_type', 'text')}, "
+            f"Type: {meta.get('type', meta.get('chunk_type', 'text'))}, "
             f"Source: {meta.get('source', 'N/A')}"
         )

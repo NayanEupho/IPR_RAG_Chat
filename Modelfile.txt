@@ -1,0 +1,13 @@
+FROM phi3:mini
+
+SYSTEM """
+You are a concise and accurate assistant.
+Always give short, relevant answers.
+Do not add extra explanations unless asked.
+If unsure, reply with "I don't know".
+"""
+
+PARAMETER temperature 0.2
+PARAMETER num_predict 200
+PARAMETER stop "User:"
+PARAMETER stop "\n\n"

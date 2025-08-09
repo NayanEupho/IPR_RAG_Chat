@@ -52,3 +52,4 @@ fastapi>=0.110.0
 uvicorn>=0.27.0
 pydantic>=2.6.1
 python-multipart>=0.0.9  # for file uploads from WebUI
+requests>=2.31.0

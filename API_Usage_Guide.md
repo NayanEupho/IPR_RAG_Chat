@@ -1,192 +1,208 @@
-# 📘 RAG Chatbot API Usage Guide
 
-This guide explains how to use your **FastAPI-powered RAG chatbot API** with your **local model** (via LangChain), including:
-- Starting the API server
-- Loading PDFs into the vector store
-- Asking questions
-- Using GPU or CPU
-- Overriding device per query
-- Viewing retrieved chunks (debug mode)
+# RAG Chatbot API - Usage Guide
+
+This document explains how to use the `api_server.py` RAG Chatbot API for querying PDF documents with Hugging Face or Ollama models.  
+It includes **features**, **endpoints**, and **examples**.
 
 ---
 
-## 1️⃣ Start the API Server
+## 🚀 Overview
 
-From your project root, run:
+The API allows you to:
+- Load one or more PDF documents into a FAISS vector store.
+- Select a language model backend (**Hugging Face** or **Ollama**).
+- Query the PDFs in **OpenAI API-compatible format** (works with Open WebUI).
+- Unload models to free GPU/CPU memory.
 
+---
+
+## 📌 Features
+
+- **Multiple Backends**:
+  - Hugging Face models (`hf`).
+  - Ollama local models (`ollama`).
+- **Persistent Caching**:
+  - Automatically caches FAISS vector indexes for faster reloads.
+- **Configurable Retrieval**:
+  - Choose `top_k` relevant chunks.
+- **OpenAI API Compatibility**:
+  - Works with Open WebUI and similar tools.
+- **GPU Support** (Hugging Face backend).
+- **Chunk Debugging**:
+  - Optional retrieval chunk logging.
+
+---
+
+## ⚙️ API Endpoints
+
+### 1. `GET /v1/models`
+**Description:** Returns available models for selection.
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:8000/v1/models
+```
+
+**Example Response:**
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "object": "model",
+      "owned_by": "huggingface",
+      "permissions": []
+    },
+    {
+      "id": "phi3:mini",
+      "object": "model",
+      "owned_by": "ollama",
+      "permissions": []
+    }
+  ]
+}
+```
+
+---
+
+### 2. `POST /load_pdfs`
+**Description:** Loads PDFs into a FAISS vector store and initializes the chosen model.
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8000/load_pdfs   -H "Content-Type: application/json"   -d '{
+    "pdfs": ["sample_pdfs/sample1.pdf"],
+    "use_gpu": true,
+    "top_k": 3,
+    "model_backend": "hf",
+    "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  }'
+```
+
+**Example Response:**
+```json
+{
+  "status": "PDFs loaded successfully",
+  "load_info": {
+    "pdfs": ["sample_pdfs/sample1.pdf"],
+    "use_gpu": true,
+    "top_k": 3,
+    "model_backend": "hf",
+    "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "cache_dir": "vector_cache/abcd1234"
+  }
+}
+```
+
+---
+
+### 3. `POST /v1/chat/completions`
+**Description:** Queries the loaded PDFs and returns a model-generated answer.
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8000/v1/chat/completions   -H "Content-Type: application/json"   -d '{
+    "model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "What is this document about?"}
+    ],
+    "show_chunks": true
+  }'
+```
+
+**Example Response:**
+```json
+{
+  "id": "chatcmpl-1693456",
+  "object": "chat.completion",
+  "created": 1693456789,
+  "model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "This PDF discusses..."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "sources": [
+    {"page": 1, "source": "sample_pdfs/sample1.pdf"}
+  ]
+}
+```
+
+---
+
+### 4. `POST /unload_model`
+**Description:** Unloads the model and retriever from memory.
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8000/unload_model
+```
+
+**Example Response:**
+```json
+{
+  "status": "Model and retriever unloaded from memory"
+}
+```
+
+---
+
+## 🔍 Parameters
+
+| Parameter        | Type    | Description |
+|------------------|---------|-------------|
+| `pdfs`           | list    | Paths to one or more PDFs. |
+| `use_gpu`        | bool    | Use GPU (HF backend only). |
+| `top_k`          | int     | Number of top chunks to retrieve. |
+| `model_backend`  | string  | `"hf"` for Hugging Face, `"ollama"` for Ollama. |
+| `model_id`       | string  | Model name (Hugging Face or Ollama). |
+| `show_chunks`    | bool    | Log top retrieved chunks. |
+
+---
+
+## 🖥 Running the API Server
+
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2. Start the server:
 ```bash
 uvicorn api_server:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Flags explained:**
-- `--reload` → Auto-restart the server when you edit files
-- `--host 0.0.0.0` → Listen on all network interfaces (for local or remote access)
-- `--port 8000` → API will run on port 8000
-
-Once running, the API is available at:
-```
-http://localhost:8000
-```
-
----
-
-## 2️⃣ Open the Interactive API Docs
-
-FastAPI automatically generates a Swagger UI:
+3. Access in browser:
 ```
 http://localhost:8000/docs
 ```
 
-From here, you can:
-- Test endpoints without using curl or Postman
-- See request/response formats
-- Execute API calls directly in the browser
+---
+
+## 🧩 Integration with Open WebUI
+
+- Point Open WebUI to `http://localhost:8000`.
+- The `/v1/chat/completions` endpoint is OpenAI-compatible.
+- Models listed from `/v1/models` will appear in the dropdown.
 
 ---
 
-## 3️⃣ Load PDFs into the Vector Store
-
-Before asking questions, you must **load your PDFs**.
-
-In `/docs`, find the **`POST /load_pdfs`** endpoint → click **Try it out**.
-
-Example JSON for **GPU**:
-```json
-{
-  "pdfs": ["sample_pdfs/sample1.pdf"],
-  "use_gpu": true,
-  "top_k": 3
-}
-```
-
-Example JSON for **CPU**:
-```json
-{
-  "pdfs": ["sample_pdfs/sample1.pdf"],
-  "use_gpu": false,
-  "top_k": 3
-}
-```
-
-**Fields:**
-- `pdfs` → List of one or more PDF file paths
-- `use_gpu` → `true` for GPU, `false` for CPU
-- `top_k` → Number of top chunks to retrieve per query
-
-**Example response:**
-```json
-{
-  "status": "PDFs loaded successfully",
-  "pdfs": ["sample_pdfs/sample1.pdf"],
-  "use_gpu": false,
-  "top_k": 3
-}
-```
-
----
-
-## 4️⃣ Ask a Question (Default Behavior)
-
-In `/docs`, find the **`POST /v1/chat/completions`** endpoint → click **Try it out**.
-
-Example JSON:
-```json
-{
-  "model": "local-llama",
-  "messages": [
-    { "role": "user", "content": "What is this PDF about?" }
-  ],
-  "temperature": 0.0,
-  "show_chunks": true
-}
-```
-
-**Fields:**
-- `model` → Any string (OpenAI-compatible format requirement). Doesn’t affect which model is used.
-- `messages` → List of messages in conversation format. Your **question** goes in the `user` message.
-- `temperature` → Controls creativity (0.0 = more factual, 1.0 = more creative)
-- `show_chunks` → If `true`, prints chunk metadata in the **server logs** for debugging.
-
----
-
-## 5️⃣ Per-Query Device Override
-
-Even after loading PDFs with a certain device setting, you can override it **for one query only**.
-
-### 🔹 Force GPU for a single query
-```json
-{
-  "model": "local-llama",
-  "messages": [
-    { "role": "user", "content": "Summarize the document." }
-  ],
-  "temperature": 0.0,
-  "show_chunks": false,
-  "use_gpu": true
-}
-```
-
-### 🔹 Force CPU for a single query
-```json
-{
-  "model": "local-llama",
-  "messages": [
-    { "role": "user", "content": "Summarize the document." }
-  ],
-  "temperature": 0.0,
-  "show_chunks": false,
-  "use_gpu": false
-}
-```
-
-If `use_gpu` is **not provided**, the query uses the **default device** from `/load_pdfs`.
-
----
-
-## 6️⃣ Using curl Instead of `/docs`
-
-You can call the API from the terminal using `curl`.
-
-**Load PDFs (CPU):**
+## 📌 Notes
+- Ensure your PDF paths are **absolute or relative to the API working directory**.
+- If using Ollama, make sure Ollama is installed and running:
 ```bash
-curl -X POST "http://localhost:8000/load_pdfs" \
--H "Content-Type: application/json" \
--d "{ \"pdfs\": [\"sample_pdfs/sample1.pdf\"], \"use_gpu\": false }"
+ollama run phi3:mini
 ```
-
-**Ask a Question with GPU override:**
-```bash
-curl -X POST "http://localhost:8000/v1/chat/completions" \
--H "Content-Type: application/json" \
--d "{ \"model\": \"local-llama\", \"messages\": [ { \"role\": \"user\", \"content\": \"What is this PDF about?\" } ], \"temperature\": 0.0, \"show_chunks\": true, \"use_gpu\": true }"
-```
-
----
-
-## 7️⃣ Unloading the Model
-
-To free GPU/CPU memory without stopping the API, call POST /unload_model:
-**Unload request**
-
-{
-  "unload": true
-}
-
-Response:
-
-{
-  "status": "Model and retriever unloaded from memory"
-}
-
-After unloading, if you query, you’ll get:
-
-{"detail": "No model loaded. Please call /load_pdfs first."}
-
-
-
-## Notes & Tips
-- The API uses **cached FAISS indexes** for faster reloads — if the PDF content hasn’t changed, it reuses the existing vector store.
-- `show_chunks` only prints to the **server console**, not in the JSON response (keeps responses clean).
-- You can reload the same or different PDFs anytime without restarting the server.
-- `use_gpu` in `/v1/chat/completions` lets you **temporarily** switch devices without reloading PDFs.
-- /unload_model clears model from memory without stopping the API.
+- Cached FAISS indexes are stored in `vector_cache/`.
