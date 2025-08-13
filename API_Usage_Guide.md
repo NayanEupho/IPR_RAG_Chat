@@ -1,208 +1,272 @@
+# 🧠 RAG PDF Chatbot with CLI & GUI
 
-# RAG Chatbot API - Usage Guide
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![LLM](https://img.shields.io/badge/Model-TinyLlama-orange)
+![FAISS](https://img.shields.io/badge/VectorDB-FAISS-yellow)
+![Platform](https://img.shields.io/badge/Platform-CLI%20%26%20GUI-purple)
 
-This document explains how to use the `api_server.py` RAG Chatbot API for querying PDF documents with Hugging Face or Ollama models.  
-It includes **features**, **endpoints**, and **examples**.
-
----
-
-## 🚀 Overview
-
-The API allows you to:
-- Load one or more PDF documents into a FAISS vector store.
-- Select a language model backend (**Hugging Face** or **Ollama**).
-- Query the PDFs in **OpenAI API-compatible format** (works with Open WebUI).
-- Unload models to free GPU/CPU memory.
+> A **Retrieval-Augmented Generation (RAG)** chatbot that lets you query local PDF documents using natural language — via CLI or GUI with **seamless file upload integration**.
 
 ---
 
-## 📌 Features
+## 🚀 Features
 
-- **Multiple Backends**:
-  - Hugging Face models (`hf`).
-  - Ollama local models (`ollama`).
-- **Persistent Caching**:
-  - Automatically caches FAISS vector indexes for faster reloads.
-- **Configurable Retrieval**:
-  - Choose `top_k` relevant chunks.
-- **OpenAI API Compatibility**:
-  - Works with Open WebUI and similar tools.
-- **GPU Support** (Hugging Face backend).
-- **Chunk Debugging**:
-  - Optional retrieval chunk logging.
+- 📄 **Upload and chat with PDF documents** directly through Open WebUI
+- 🗂 Uses **FAISS** for local vector storage with intelligent caching
+- 🤖 **TinyLlama** and **Ollama phi3:mini** for local LLM inference
+- ⚙️ Supports **CPU/GPU** with automatic detection
+- ⚡ **Auto-initialization** - no manual API calls needed
+- 🔄 **Smart caching** - reuses embeddings for faster performance
+- 🌐 **OpenAI API compatible** - works seamlessly with Open WebUI
 
 ---
 
-## ⚙️ API Endpoints
+## ⚡ Quick Start (Diagram)
 
-### 1. `GET /v1/models`
-**Description:** Returns available models for selection.
+```mermaid
+graph TD;
+    A[Upload PDFs via Open WebUI] --> B[Auto-Initialize RAG System];
+    B --> C[FAISS Embedding Store];
+    C --> D[LLM - TinyLlama/Ollama phi3:mini];
+    D --> E[CLI / API / Open WebUI];
+    F[File Upload] --> A;
+```
 
-**Example Request:**
+---
+
+## 🧪 CLI Usage
+
+### 1️⃣ Activate Virtual Environment
 ```bash
-curl -X GET http://localhost:8000/v1/models
+# Windows
+source venv/Scripts/activate
+
+# macOS / Linux
+source venv/bin/activate
 ```
 
-**Example Response:**
-```json
-{
-  "object": "list",
-  "data": [
-    {
-      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-      "object": "model",
-      "owned_by": "huggingface",
-      "permissions": []
-    },
-    {
-      "id": "phi3:mini",
-      "object": "model",
-      "owned_by": "ollama",
-      "permissions": []
-    }
-  ]
-}
-```
-
----
-
-### 2. `POST /load_pdfs`
-**Description:** Loads PDFs into a FAISS vector store and initializes the chosen model.
-
-**Example Request:**
+### 2️⃣ Query via CLI
 ```bash
-curl -X POST http://localhost:8000/load_pdfs   -H "Content-Type: application/json"   -d '{
-    "pdfs": ["sample_pdfs/sample1.pdf"],
-    "use_gpu": true,
-    "top_k": 3,
-    "model_backend": "hf",
-    "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
-  }'
-```
-
-**Example Response:**
-```json
-{
-  "status": "PDFs loaded successfully",
-  "load_info": {
-    "pdfs": ["sample_pdfs/sample1.pdf"],
-    "use_gpu": true,
-    "top_k": 3,
-    "model_backend": "hf",
-    "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-    "cache_dir": "vector_cache/abcd1234"
-  }
-}
+python CLI_app.py --pdfs sample_pdfs/sample1.pdf --use_gpu --show_chunks
 ```
 
 ---
 
-### 3. `POST /v1/chat/completions`
-**Description:** Queries the loaded PDFs and returns a model-generated answer.
+## 🌐 Open WebUI Integration (Recommended)
 
-**Example Request:**
+### ✨ **NEW: Simplified Workflow**
+No more manual API calls! Upload PDFs directly through Open WebUI and start chatting immediately.
+
+### 🚀 Quick Setup
+
+#### 1️⃣ Start the API Server
 ```bash
-curl -X POST http://localhost:8000/v1/chat/completions   -H "Content-Type: application/json"   -d '{
-    "model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-    "messages": [
-      {"role": "system", "content": "You are a helpful assistant."},
-      {"role": "user", "content": "What is this document about?"}
-    ],
-    "show_chunks": true
-  }'
+uvicorn api_server:app --host 0.0.0.0 --port 8000
 ```
 
-**Example Response:**
-```json
-{
-  "id": "chatcmpl-1693456",
-  "object": "chat.completion",
-  "created": 1693456789,
-  "model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "This PDF discusses..."
-      },
-      "finish_reason": "stop"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 0,
-    "completion_tokens": 0,
-    "total_tokens": 0
-  },
-  "sources": [
-    {"page": 1, "source": "sample_pdfs/sample1.pdf"}
-  ]
-}
-```
-
----
-
-### 4. `POST /unload_model`
-**Description:** Unloads the model and retriever from memory.
-
-**Example Request:**
+#### 2️⃣ Start Open WebUI
 ```bash
-curl -X POST http://localhost:8000/unload_model
+docker run -d \
+  -p 3000:8080 \
+  -e OPENAI_API_BASE_URL=http://YOUR_IP:8000/v1 \
+  -e OPENAI_API_KEY=dummy-key \
+  -v open-webui:/app/backend/data \
+  --name open-webui \
+  ghcr.io/open-webui/open-webui:main
 ```
 
-**Example Response:**
-```json
-{
-  "status": "Model and retriever unloaded from memory"
-}
+#### 3️⃣ Access and Use
+1. **Open**: `http://YOUR_IP:3000` (replace YOUR_IP with your machine's IP, e.g., `10.20.41.185:3000`)
+2. **Select Model**: Choose `TinyLlama/TinyLlama-1.1B-Chat-v1.0` or `phi3:mini`
+3. **Upload PDFs**: Click the 📎 attachment icon and upload your PDF files
+4. **Start Chatting**: Ask questions immediately - the system auto-initializes!
+
+---
+
+## 📌 Connection Settings
+
+### 🌍 **Network Access** (All Systems)
+- **API URL**: `http://YOUR_MACHINE_IP:8000/v1` (e.g., `http://10.20.41.185:8000/v1`)
+- **API Key**: Any dummy value (e.g., `dummy-key`)
+
+### 🏠 **Local Access Only**
+- **API URL**: `http://localhost:8000/v1` or `http://127.0.0.1:8000/v1`
+- **API Key**: Any dummy value
+
+### 🐳 **Docker Users**
+- **API URL**: `http://host.docker.internal:8000/v1`
+- **API Key**: Any dummy value
+
+---
+
+## 🔧 Model Setup
+
+### 🤖 **TinyLlama (Default)**
+- **Model ID**: `TinyLlama/TinyLlama-1.1B-Chat-v1.0`
+- **Backend**: Hugging Face Transformers
+- **GPU Support**: Automatic detection
+- **Setup**: No additional setup required
+
+### 🦙 **Ollama phi3:mini**
+- **Model ID**: `phi3:mini`
+- **Backend**: Ollama
+- **Prerequisites**: Ollama must be installed and running
+
+#### Ollama Setup:
+```bash
+# Install model
+ollama create phi3:mini -f Modelfile
+
+# Restart Ollama service
+ollama stop
+ollama serve
+
+# Verify model is available
+ollama list
 ```
 
 ---
 
-## 🔍 Parameters
+## 💡 **NEW: Auto-Initialization Features**
 
-| Parameter        | Type    | Description |
-|------------------|---------|-------------|
-| `pdfs`           | list    | Paths to one or more PDFs. |
-| `use_gpu`        | bool    | Use GPU (HF backend only). |
-| `top_k`          | int     | Number of top chunks to retrieve. |
-| `model_backend`  | string  | `"hf"` for Hugging Face, `"ollama"` for Ollama. |
-| `model_id`       | string  | Model name (Hugging Face or Ollama). |
-| `show_chunks`    | bool    | Log top retrieved chunks. |
+### 🔄 **Smart Workflow**
+1. **Upload PDFs** through Open WebUI's file upload interface
+2. **Select your preferred model** from the dropdown
+3. **Ask questions** - the system automatically:
+   - Detects uploaded PDFs
+   - Initializes the selected model
+   - Creates/loads vector embeddings
+   - Starts answering your questions
+
+### 📁 **File Management**
+- Uploaded files are stored in `uploaded_pdfs/` directory
+- Vector embeddings cached in `vector_cache/` for faster reloads
+- Support for multiple PDFs simultaneously
+
+### 🧠 **Intelligent Model Detection**
+- **HuggingFace models**: Automatic GPU detection and usage
+- **Ollama models**: Automatic local inference setup
+- **Fallback handling**: Graceful error recovery
 
 ---
 
-## 🖥 Running the API Server
+## 🛠️ Advanced Usage
 
-1. Install dependencies:
+### 📊 **Status Monitoring**
+Check system status and uploaded files:
+```bash
+curl http://localhost:8000/status
+```
+
+### 🗑️ **Clear Uploads**
+Reset the system and clear uploaded files:
+```bash
+curl -X POST http://localhost:8000/clear_uploads
+```
+
+### 📋 **List Files**
+View all uploaded files:
+```bash
+curl http://localhost:8000/v1/files
+```
+
+---
+
+## 🔧 Installation & Dependencies
+
+### 1️⃣ **Install Python Dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Start the server:
+### 2️⃣ **Install NLTK Data** (Required for text processing)
 ```bash
-uvicorn api_server:app --reload --host 0.0.0.0 --port 8000
+python -c "import nltk; nltk.download('punkt_tab'); nltk.download('punkt'); nltk.download('stopwords')"
 ```
 
-3. Access in browser:
-```
-http://localhost:8000/docs
+### 3️⃣ **GPU Support** (Optional)
+For CUDA GPU acceleration:
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
 ---
 
-## 🧩 Integration with Open WebUI
+## 🚀 API Endpoints
 
-- Point Open WebUI to `http://localhost:8000`.
-- The `/v1/chat/completions` endpoint is OpenAI-compatible.
-- Models listed from `/v1/models` will appear in the dropdown.
+### **Core Endpoints**
+- `GET /v1/models` - List available models
+- `POST /v1/chat/completions` - OpenAI-compatible chat
+- `POST /v1/files` - Upload PDF files
+- `GET /v1/files` - List uploaded files
+
+### **Management Endpoints**
+- `GET /status` - System status and file count
+- `POST /clear_uploads` - Clear all uploaded files
+- `POST /unload_model` - Free memory
+- `POST /load_pdfs` - Manual PDF loading (legacy)
 
 ---
 
-## 📌 Notes
-- Ensure your PDF paths are **absolute or relative to the API working directory**.
-- If using Ollama, make sure Ollama is installed and running:
+## 🔍 Troubleshooting
+
+### **Common Issues:**
+
+#### NLTK Data Missing
 ```bash
-ollama run phi3:mini
+# Error: Resource punkt_tab not found
+python -c "import nltk; nltk.download('punkt_tab')"
 ```
-- Cached FAISS indexes are stored in `vector_cache/`.
+
+#### Network Access Issues
+- Ensure API server runs with `--host 0.0.0.0`
+- Check firewall settings for ports 8000 and 3000
+- Use actual IP address instead of localhost for remote access
+
+#### Model Loading Errors
+- Check GPU availability: `python -c "import torch; print(torch.cuda.is_available())"`
+- Ensure sufficient disk space for model downloads
+- Verify Ollama is running for phi3:mini model
+
+---
+
+## 🌟 What's New in v2.0
+
+### ✨ **Major Updates:**
+- **🎯 Zero-Configuration Setup**: Upload files and start chatting instantly
+- **📁 Seamless File Upload**: Direct PDF upload through Open WebUI interface
+- **🔄 Auto-Initialization**: Automatic RAG system setup with uploaded files
+- **🌐 Network-Ready**: Easy multi-system access with proper IP configuration
+- **🧠 Smart Model Detection**: Automatic backend selection based on model choice
+- **📊 Enhanced Monitoring**: Better status reporting and file management
+
+### 🔧 **Technical Improvements:**
+- OpenAI Files API compatibility (`/v1/files`)
+- Automatic NLTK data download
+- Improved error handling and user feedback
+- Better caching and performance optimization
+
+---
+
+## 📜 License
+This project is licensed under the **MIT License**.
+
+---
+
+## 🤝 Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+---
+
+## 💡 Tips for Best Performance
+
+- **Use SSD storage** for faster embedding cache access
+- **Enable GPU** for faster model inference (HuggingFace models)
+- **Upload PDFs once** - embeddings are cached for reuse
+- **Use smaller PDFs** for faster initial processing
+- **Monitor memory usage** with multiple large documents
