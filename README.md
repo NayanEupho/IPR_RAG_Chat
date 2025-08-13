@@ -26,9 +26,9 @@
 
 ```mermaid
 graph TD;
-    A[Upload PDFs via Open WebUI] --> B[Auto-Initialize RAG System];
+    A[Upload PDFs via CLI / API / Open WebUI] --> B[Auto-Initialize RAG System];
     B --> C[FAISS Embedding Store];
-    C --> D[LLM - TinyLlama/Ollama phi3:mini];
+    C --> D[LLM - TinyLlama / Ollama phi3:mini];
     D --> E[CLI / API / Open WebUI];
     F[File Upload] --> A;
 ```
